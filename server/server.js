@@ -53,7 +53,11 @@ app.use("/api/messages",messageRouter);
 //Connect to MongoDb 
 await connectDB();
 
+//if local host hai to hi run krega ye nhi to nhi krega 
+if(process.env.NODE_ENV !== "production"){
+    const PORT = process.env.PORT || 9000;
+    server.listen(PORT,()=> console.log(`Server is running on the port ${PORT}`));
+}
 
-const PORT = process.env.PORT || 9000;
-
-server.listen(PORT,()=> console.log(`Server is running on the port ${PORT}`));
+//export server for vercel
+export default server;
