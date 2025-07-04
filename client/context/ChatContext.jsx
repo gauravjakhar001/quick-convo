@@ -23,7 +23,13 @@ export const ChatProvider = ({children})=>{
                 (newMessage.senderId === selectedUser._id || newMessage.receiverId === selectedUser._id)
             ) {
                 newMessage.seen = true;
-                setMessages((prevMessages) => [...prevMessages, newMessage]);
+                setMessages((prevMessages) => {
+                    // Avoid duplicate messages by _id
+                    if (prevMessages.some(msg => msg._id === newMessage._id)) {
+                        return prevMessages;
+                    }
+                    return [...prevMessages, newMessage];
+                });
                 axios.put(`/api/messages/mark/${newMessage._id}`);
             } else {
                 // Otherwise, increment unseen count
