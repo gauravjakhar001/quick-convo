@@ -13,15 +13,17 @@ export const protectRoute = async (req,res,next) =>{
         //token from backend to verify the token recieved 
         const token = req.headers.token;
 
-        const decoded = jwt.verify(token,process.env.JWT_SECRET);
+        const decodedToken = jwt.verify(token,process.env.JWT_SECRET);
 
-        const user = await User.findById(decoded.userId).select("-password");
+        const user = await User.findById(decodedToken.userId).select("-password");
 
         if(!user) return res.json({
             success :false,
             message:"User not found"
         })
-        
+
+        //if user is available
+        //this will add the user data in the request and we can access the user data in the controller function
         req.user  = user;
         next();
         

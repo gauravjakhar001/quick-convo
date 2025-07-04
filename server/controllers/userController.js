@@ -1,30 +1,32 @@
+import cloudinary from "../lib/cloudinary.js";
 import { generateToken } from "../lib/utils.js";
 import User from "../models/User.js";
+import bcrypt from "bcryptjs";
 
 //Signup new user
 export const signup = async (req,res)=>{
     
-    const {email,fullName,password,profilePic,bio} = req.body;
+    const {email,fullName,password,bio} = req.body;
 
     try {
 
-        if(!email || !fullName || !password || !profilePic || !bio){
+        if(!email || !fullName || !password  || !bio){
          return res.json({
             success : false,
             message :"Missing Details"
         })
     }
 
-    const user = User.findOne({email});
+    const user = await User.findOne({email});
 
     if(user){
-        return  res.json({
+        return res.json({
             success: false,
             message: "Account already exists"
         })
     }
 
-    const salt  = await bcrypt.getSalt(10);
+    const salt  = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password,salt);
 
     const newUser  = await User.create({
@@ -69,6 +71,14 @@ export const login  = async (req,res)=>{
         // jo user ne email and password diye hai vo check krne hai ki signup hua vo user ya nhi
 
         const userData  = await User.findOne({email});
+
+        if (!userData) {
+            return res.json({
+                success: false,
+                message: "Invalid credentials"
+            });
+        }
+
         const isPasswordCorrect  = await bcrypt.compare(password,userData.password); //userData mongoDB me store hai 
 
         if(!isPasswordCorrect){
@@ -101,4 +111,57 @@ export const login  = async (req,res)=>{
 
 }
 
-//
+//Controller function to check the if user authenticated 
+
+export const checkAuth = (req,res)=>{
+    res.json({
+        success: true,
+        user : req.user
+    });
+}
+
+//Controller function to update their profile (including their image updation)
+
+//steps
+//1) setup the cloudinary so that the user can store images in the cloudinary/cloud storage
+//profile ke liye chaiye - image , fullName , Bio of person 
+
+export const updateProfile = async(req,res)=>{
+
+    try {
+        const {profilePic, bio,fullName} = req.body;
+
+        const userId  = req.user._id;
+
+        let updatedUser;
+        //user -> this is the id comming from the frontend whose so ever is trying to modify the details 
+        //User -> this is the user details already stored within the database
+
+        if(!profilePic){
+            updatedUser = await User.findByIdAndUpdate(userId,{bio,fullName},{new:true});
+        }else{
+            
+            const upload = await cloudinary.uploader.upload(profilePic);
+
+            updatedUser = await User.findByIdAndUpdate(userId,{profilePic : upload.secure_url,bio,fullName},{new:true});
+
+        }
+
+        res.json({
+            success:true,
+            user:updatedUser
+        })
+    } catch (error) {
+        console.log(error.message);
+        res.json({
+            success:false,
+            message:error.message
+        })
+    }
+}
+
+// now I have to create the api end point for these controller functions but for this I have to first 
+// create the routes
+
+
+
